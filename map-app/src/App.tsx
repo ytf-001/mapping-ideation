@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, useMapEvents, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import './App.css'
@@ -16,11 +16,15 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 })
 
-const personIcon = L.divIcon({
+const pinIcon = L.divIcon({
   className: '',
-  html: `<div class="person-icon">🧍</div>`,
-  iconSize: [40, 40],
-  iconAnchor: [20, 40],
+  html: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
+    <path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 26 16 26S32 26 32 16C32 7.163 24.837 0 16 0z"
+      fill="#607845" stroke="white" stroke-width="2"/>
+    <circle cx="16" cy="16" r="6" fill="white"/>
+  </svg>`,
+  iconSize: [32, 42],
+  iconAnchor: [16, 42],
 })
 
 interface LatLng {
@@ -46,7 +50,7 @@ function DragDropMarker({
   return (
     <Marker
       position={[position.lat, position.lng]}
-      icon={personIcon}
+      icon={pinIcon}
       draggable
       eventHandlers={{
         dragend(e) {
@@ -66,35 +70,45 @@ export default function App() {
       <header className="header">
         <img src="/geoforge logo.svg" alt="Geoforge" className="header-logo" />
         <h1>Geoforge Visualizer</h1>
-        <p>
-          {markerPos
-            ? 'Drag the person to reposition.'
-            : 'Click anywhere on the map to place a person.'}
-        </p>
       </header>
 
       <div className="map-wrapper">
         <MapContainer
           center={[51.505, -0.09]}
           zoom={13}
+          zoomControl={false}
           style={{ width: '100%', height: '100%' }}
         >
+          <ZoomControl position="bottomright" />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <DragDropMarker position={markerPos} onDrop={setMarkerPos} />
         </MapContainer>
-      </div>
 
-      {markerPos && (
         <div className="info-panel">
-          <span className="label">Coordinates</span>
-          <span className="coords">
-            {markerPos.lat.toFixed(5)}, {markerPos.lng.toFixed(5)}
-          </span>
+          <div className="info-panel-title">Location</div>
+          {markerPos ? (
+            <>
+              <div className="info-row">
+                <div className="info-col">
+                  <span className="info-label">latitude</span>
+                  <span className="info-value">{markerPos.lat.toFixed(6)}</span>
+                </div>
+                <div className="info-col">
+                  <span className="info-label">longitude</span>
+                  <span className="info-value">{markerPos.lng.toFixed(6)}</span>
+                </div>
+              </div>
+              <div className="visualize-divider" />
+              <button className="visualize-btn">Click to visualize</button>
+            </>
+          ) : (
+            <p className="info-empty">Click anywhere on the map to start visualizing.</p>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

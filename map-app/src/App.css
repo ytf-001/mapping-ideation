@@ -21,25 +21,28 @@ html,
 }
 
 .header {
-  padding: 0px 20px;
+  padding: 8px 20px;
   background: #ffffff;
   border-bottom: 1px solid #ddd;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
 .header-logo {
-  height: 52px;
-  width: 52px;
+  height: 40px;
+  width: 40px;
   flex-shrink: 0;
 }
 
 .header h1 {
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   font-weight: 600;
   color: #607845;
   white-space: nowrap;
+  margin: 0;
+  line-height: 1;
 }
 
 .header p {
@@ -50,6 +53,7 @@ html,
 .map-wrapper {
   flex: 1;
   min-height: 0;
+  position: relative;
 }
 
 .person-icon {
@@ -63,25 +67,121 @@ html,
   cursor: grabbing;
 }
 
+/* Zoom control styling */
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+  margin-bottom: 16px !important;
+  margin-right: 16px !important;
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-size: 1.1rem !important;
+  font-weight: 400 !important;
+  color: #333 !important;
+  background: #ffffff !important;
+  border: none !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  display: block;
+}
+
+.leaflet-control-zoom-in {
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  background: #f5f5f5 !important;
+  color: #607845 !important;
+}
+
 .info-panel {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 20px;
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
   background: #ffffff;
-  border-top: 1px solid #ddd;
-  font-size: 0.85rem;
-}
-
-.label {
-  color: #607845;
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
-}
-
-.coords {
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08);
+  padding: 14px 18px;
+  width: 260px;
   font-family: 'Inter', system-ui, sans-serif;
-  color: #333;
+}
+
+.info-panel-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #607845;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+  text-align: center;
+}
+
+.info-row {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: center;
+}
+
+.info-col {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  align-items: center;
+}
+
+.info-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #999;
+  text-transform: lowercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 2px;
+}
+
+.visualize-divider {
+  margin-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.visualize-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 8px 0;
+  background: #607845;
+  color: #ffffff;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.2s;
+}
+
+.visualize-btn:hover {
+  background: #4e6238;
+}
+
+.info-empty {
+  font-size: 0.8rem;
+  color: #999;
+  line-height: 1.4;
+}
+
+.info-value {
+  font-size: 0.85rem;
+  color: #222;
+  font-weight: 400;
 }
