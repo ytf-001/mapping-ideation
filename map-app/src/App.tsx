@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents, ZoomControl } from 'reac
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { ReactPhotoSphereViewer } from 'react-photo-sphere-viewer'
+import Anthropic from '@anthropic-ai/sdk'
 import './App.css'
 
 // Fix Leaflet's default icon path issue with Vite bundler
@@ -35,26 +36,32 @@ interface LatLng {
   lng: number
 }
 
-async function reverseGeocode(lat: number, lng: number): Promise<string> {
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-      { headers: { 'Accept-Language': 'en' } }
-    )
-    const data = await res.json()
-    const { city, town, village, country } = data.address ?? {}
-    const place = city ?? town ?? village ?? country ?? 'unknown location'
-    return `${place}, ${country ?? ''}`.trim().replace(/,$/, '')
-  } catch {
-    return 'a scenic location'
-  }
+async function buildPromptWithClaude(lat: number, lng: number): Promise<string> {
+  const client = new Anthropic({
+    apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY as string,
+    dangerouslyAllowBrowser: true,
+  })
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 256,
+    messages: [
+      {
+        role: 'user',
+        //content: `Given the coordinates Lat: ${lat}, Long: ${lng}, write a single detailed sentence describing the exact real-world location and its surroundings. Limit your response to 100 words.`,
+        //content: `Given the coordinates Lat: ${lat}, Long: ${lng}, write a single detailed sentence describing the exact real-world location and its surroundings to be used as a generation prompt for a photorealistic 360° street-level panorama visualization. Limit your response to 100 words.`,
+        content: `You are a prompt engineer specializing in 360° image generation. Given the coordinates Lat: ${lat}, Long: ${lng}, write a single detailed sentence describing the exact real-world location and its surroundings — including architecture, street environment, vegetation, and atmosphere — to be used as a generation prompt for a photorealistic 360° street-level panorama. Limit your response to 100 words.`,
+      },
+    ],
+  })
+  const block = message.content[0]
+  return block.type === 'text' ? block.text.trim() : `location at ${lat}, ${lng}`
 }
 
 async function generateSkybox(prompt: string): Promise<string> {
   const createRes = await fetch('https://backend.blockadelabs.com/api/v1/skybox', {
     method: 'POST',
     headers: { 'x-api-key': SKYBOX_API_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ skybox_style_id: 2, prompt }),
+    body: JSON.stringify({ skybox_style_id: 67, prompt }),
   })
   if (!createRes.ok) throw new Error('Failed to start Skybox generation')
   const { id } = await createRes.json()
@@ -115,8 +122,8 @@ export default function App() {
     setIsLoading(true)
     setError(null)
     try {
-      const location = await reverseGeocode(markerPos.lat, markerPos.lng)
-      const prompt = `Photorealistic 360° street-level view from ${location}, natural lighting, high detail`
+      const prompt = await buildPromptWithClaude(markerPos.lat, markerPos.lng)
+      console.log('Skybox prompt:', prompt)
       const url = await generateSkybox(prompt)
       setPanoramaUrl(url)
     } catch (e) {
