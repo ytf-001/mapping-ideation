@@ -21,7 +21,7 @@ html,
 }
 
 .header {
-  padding: 12px 20px;
+  padding: 0px 20px;
   background: #ffffff;
   border-bottom: 1px solid #ddd;
   display: flex;
@@ -29,10 +29,16 @@ html,
   gap: 16px;
 }
 
+.header-logo {
+  height: 52px;
+  width: 52px;
+  flex-shrink: 0;
+}
+
 .header h1 {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #e94560;
+  color: #607845;
   white-space: nowrap;
 }
 

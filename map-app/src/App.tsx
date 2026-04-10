@@ -64,6 +64,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="header">
+        <img src="/geoforge logo.svg" alt="Geoforge" className="header-logo" />
         <h1>Geoforge Visualizer</h1>
         <p>
           {markerPos
