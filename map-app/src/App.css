@@ -15,7 +15,7 @@ html,
   display: flex;
   flex-direction: column;
   height: 100vh;
-  font-family: system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   background: #1a1a2e;
   color: #eee;
 }
@@ -74,7 +74,7 @@ html,
 }
 
 .label {
-  color: #e94560;
+  color: #607845;
   font-weight: 600;
   text-transform: uppercase;
   font-size: 0.75rem;
@@ -82,6 +82,6 @@ html,
 }
 
 .coords {
-  font-family: monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   color: #333;
 }
