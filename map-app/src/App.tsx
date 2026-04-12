@@ -150,10 +150,28 @@ function SearchBar({ onSelect }: { onSelect: (pos: LatLng) => void }) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchSuggestions = useCallback(async (q: string) => {
-    // Lat/lng passthrough
     const parts = q.split(',').map(s => parseFloat(s.trim()))
     if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-      setSuggestions([])
+      // Reverse geocode the coordinates
+      try {
+        const res = await fetch(`https://photon.komoot.io/reverse?lat=${parts[0]}&lon=${parts[1]}&limit=1`)
+        const data = await res.json()
+        const feature = data.features?.[0]
+        if (feature) {
+          // Overwrite coordinates with the exact typed values
+          feature.geometry.coordinates = [parts[1], parts[0]]
+          setSuggestions([feature])
+        } else {
+          // No result — show a plain coordinate suggestion
+          setSuggestions([{
+            geometry: { coordinates: [parts[1], parts[0]] },
+            properties: { name: `${parts[0]}, ${parts[1]}` },
+          }])
+        }
+      } catch {
+        setSuggestions([])
+      }
+      setActiveIndex(-1)
       return
     }
     if (q.length < 2) { setSuggestions([]); return }
