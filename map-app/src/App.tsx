@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { MapContainer, TileLayer, Marker, useMapEvents, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -81,6 +81,29 @@ async function generateSkybox(prompt: string): Promise<string> {
   }
 }
 
+function GeolocationButton({ onLocate, mapRef }: { onLocate: (pos: LatLng) => void; mapRef: React.RefObject<L.Map | null> }) {
+  function handleLocate() {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords
+        onLocate({ lat, lng })
+        mapRef.current?.flyTo([lat, lng], 15)
+      },
+      () => alert('Unable to retrieve your location.')
+    )
+  }
+
+  return (
+    <button className="locate-btn" onClick={handleLocate} title="Go to my location">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+        <circle cx="12" cy="12" r="8" strokeDasharray="2 4"/>
+      </svg>
+    </button>
+  )
+}
+
 function DragDropMarker({
   position,
   onDrop,
@@ -113,6 +136,7 @@ function DragDropMarker({
 
 export default function App() {
   const [markerPos, setMarkerPos] = useState<LatLng | null>(null)
+  const mapRef = useRef<L.Map | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [panoramaUrl, setPanoramaUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -142,6 +166,7 @@ export default function App() {
 
       <div className="map-wrapper">
         <MapContainer
+          ref={mapRef}
           center={[51.505, -0.09]}
           zoom={13}
           zoomControl={false}
@@ -154,6 +179,8 @@ export default function App() {
           />
           <DragDropMarker position={markerPos} onDrop={setMarkerPos} />
         </MapContainer>
+
+        <GeolocationButton onLocate={setMarkerPos} mapRef={mapRef} />
 
         <div className="info-panel">
           <div className="info-panel-title">Location</div>
