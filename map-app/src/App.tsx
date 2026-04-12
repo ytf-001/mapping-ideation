@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { MapContainer, TileLayer, Marker, useMapEvents, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -36,6 +36,17 @@ interface LatLng {
   lng: number
 }
 
+interface PhotonFeature {
+  geometry: { coordinates: [number, number] }
+  properties: {
+    name?: string
+    city?: string
+    state?: string
+    country?: string
+    type?: string
+  }
+}
+
 async function buildPromptWithClaude(lat: number, lng: number): Promise<string> {
   const client = new Anthropic({
     apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY as string,
@@ -47,8 +58,6 @@ async function buildPromptWithClaude(lat: number, lng: number): Promise<string> 
     messages: [
       {
         role: 'user',
-        //content: `Given the coordinates Lat: ${lat}, Long: ${lng}, write a single detailed sentence describing the exact real-world location and its surroundings. Limit your response to 100 words.`,
-        //content: `Given the coordinates Lat: ${lat}, Long: ${lng}, write a single detailed sentence describing the exact real-world location and its surroundings to be used as a generation prompt for a photorealistic 360° street-level panorama visualization. Limit your response to 100 words.`,
         content: `You are a prompt engineer specializing in 360° image generation. Given the coordinates Lat: ${lat}, Long: ${lng}, write a single detailed sentence describing the exact real-world location and its surroundings — including architecture, street environment, vegetation, and atmosphere — to be used as a generation prompt for a photorealistic 360° street-level panorama. Limit your response to 100 words.`,
       },
     ],
@@ -66,7 +75,6 @@ async function generateSkybox(prompt: string): Promise<string> {
   if (!createRes.ok) throw new Error('Failed to start Skybox generation')
   const { id } = await createRes.json()
 
-  // Poll until complete
   while (true) {
     await new Promise((r) => setTimeout(r, 3000))
     const pollRes = await fetch(
@@ -134,12 +142,134 @@ function DragDropMarker({
   )
 }
 
+function SearchBar({ onSelect }: { onSelect: (pos: LatLng) => void }) {
+  const [query, setQuery] = useState('')
+  const [suggestions, setSuggestions] = useState<PhotonFeature[]>([])
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const fetchSuggestions = useCallback(async (q: string) => {
+    // Lat/lng passthrough
+    const parts = q.split(',').map(s => parseFloat(s.trim()))
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      setSuggestions([])
+      return
+    }
+    if (q.length < 2) { setSuggestions([]); return }
+    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5`)
+    const data = await res.json()
+    setSuggestions(data.features ?? [])
+    setActiveIndex(-1)
+  }, [])
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => fetchSuggestions(query), 300)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [query, fetchSuggestions])
+
+  // Close on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setSuggestions([])
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  function selectFeature(f: PhotonFeature) {
+    const [lng, lat] = f.geometry.coordinates
+    onSelect({ lat, lng })
+    setQuery('')
+    setSuggestions([])
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (activeIndex >= 0 && suggestions[activeIndex]) {
+      selectFeature(suggestions[activeIndex])
+      return
+    }
+    const parts = query.split(',').map(s => parseFloat(s.trim()))
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      onSelect({ lat: parts[0], lng: parts[1] })
+      setQuery('')
+      setSuggestions([])
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveIndex(i => Math.min(i + 1, suggestions.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveIndex(i => Math.max(i - 1, -1))
+    } else if (e.key === 'Escape') {
+      setSuggestions([])
+    }
+  }
+
+  function labelFor(f: PhotonFeature) {
+    const p = f.properties
+    const primary = p.name ?? p.city ?? p.country ?? 'Unknown'
+    const secondary = [p.city, p.state, p.country].filter(Boolean).join(', ')
+    return { primary, secondary: secondary === primary ? '' : secondary }
+  }
+
+  return (
+    <div className="header-search" ref={containerRef}>
+      <form onSubmit={handleSubmit}>
+        <div className="header-search-inner">
+          <svg className="search-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            className="header-search-input"
+            placeholder="Search..."
+            autoComplete="off"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+        </div>
+      </form>
+      {suggestions.length > 0 && (
+        <ul className="search-dropdown">
+          {suggestions.map((f, i) => {
+            const { primary, secondary } = labelFor(f)
+            return (
+              <li
+                key={i}
+                className={`search-suggestion${i === activeIndex ? ' active' : ''}`}
+                onMouseDown={() => selectFeature(f)}
+              >
+                <span className="suggestion-primary">{primary}</span>
+                {secondary && <span className="suggestion-secondary">{secondary}</span>}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export default function App() {
   const [markerPos, setMarkerPos] = useState<LatLng | null>(null)
   const mapRef = useRef<L.Map | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [panoramaUrl, setPanoramaUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  function handleSearchSelect(pos: LatLng) {
+    setMarkerPos(pos)
+    mapRef.current?.flyTo([pos.lat, pos.lng], 15)
+  }
 
   async function handleVisualize() {
     if (!markerPos) return
@@ -162,6 +292,7 @@ export default function App() {
       <header className="header">
         <img src="/geoforge logo.svg" alt="Geoforge" className="header-logo" />
         <h1 onClick={() => window.location.reload()} style={{ cursor: 'pointer' }}>Geoforge Visualizer</h1>
+        <SearchBar onSelect={handleSearchSelect} />
       </header>
 
       <div className="map-wrapper">
