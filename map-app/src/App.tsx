@@ -161,7 +161,7 @@ export default function App() {
     <div className="app">
       <header className="header">
         <img src="/geoforge logo.svg" alt="Geoforge" className="header-logo" />
-        <h1>Geoforge Visualizer</h1>
+        <h1 onClick={() => window.location.reload()} style={{ cursor: 'pointer' }}>Geoforge Visualizer</h1>
       </header>
 
       <div className="map-wrapper">

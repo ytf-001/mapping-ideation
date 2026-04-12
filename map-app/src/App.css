@@ -39,6 +39,7 @@ html,
 .header h1 {
   font-size: 1.3rem;
   font-weight: 600;
+  font-family: 'Literata', serif;
   color: #607845;
   white-space: nowrap;
   margin: 0;
@@ -139,8 +140,9 @@ html,
 }
 
 .info-panel-title {
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 600;
+  font-family: 'Literata', serif;
   color: #607845;
   text-transform: uppercase;
   letter-spacing: 0.06em;
